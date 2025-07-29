@@ -86,6 +86,6 @@ app.post('/download', async (req, res) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Сервер запущен на порту ${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Сервер запущен на порту ${port}`);
 });
