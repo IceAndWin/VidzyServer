@@ -1,5 +1,8 @@
-node_modules/
+# игнорировать большие видео и временные папки
 downloads/
+node_modules/
 *.mp4
-yt-dlp.exe
-.env
+
+# не игнорировать yt-dlp!
+!yt-dlp
+!yt-dlp.exe
