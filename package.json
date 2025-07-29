@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "postinstall": "chmod +x yt-dlp"
+    "postinstall": "chmod +x ./yt-dlp"
   },
   "keywords": [],
   "author": "",

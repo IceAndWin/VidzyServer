@@ -28,7 +28,8 @@ app.use('/videos', express.static(downloadsDir));
 // Получение названия видео по URL
 function getTitleVideo(url) {
     return new Promise((resolve, reject) => {
-        const ytDlp = spawn('./yt-dlp', ['--get-title', url]);
+        const ytDlp = spawn(path.join(__dirname, 'yt-dlp'), ['--get-title', url]);
+
 
 
         let chunks = [];
@@ -87,5 +88,5 @@ app.post('/download', async (req, res) => {
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Сервер запущен на порту ${port}`);
+    console.log(`Сервер запущен на порту ${port}`);
 });
