@@ -13,11 +13,6 @@ app.use(express.json());
 
 
 
-const buffer = Buffer.concat(chunks);
-const title = os.platform() === 'win32'
-    ? iconv.decode(buffer, 'win1251').trim()
-    : buffer.toString('utf8').trim();
-
 
 // Проверка и создание папки
 const downloadsDir = path.join(__dirname, 'downloads');
