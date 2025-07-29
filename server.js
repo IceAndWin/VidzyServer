@@ -25,7 +25,6 @@ app.use('/videos', express.static(downloadsDir));
 
 
 
-
 // Получение названия видео по URL
 function getTitleVideo(url) {
     return new Promise((resolve, reject) => {
@@ -54,6 +53,10 @@ function getTitleVideo(url) {
         });
     });
 }
+
+app.get("/", (req, res) => {
+    res.send("<h1>Hi I am GODDDDD</h1>");
+})
 
 // Запрос на скачивание
 app.post('/download', async (req, res) => {
