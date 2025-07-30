@@ -18,41 +18,33 @@ app.use('/videos', express.static(downloadsDir));
 
 const ytDlpPath = path.join(__dirname, 'yt-dlp');
 
-function getTitleVideo(url) {
+function getTitleAndThumbnail(url) {
   return new Promise((resolve, reject) => {
-    console.log('yt-dlp path:', ytDlpPath);
-    console.log('File exists:', fs.existsSync(ytDlpPath));
-    if (fs.existsSync(ytDlpPath)) {
-      console.log('File permissions:', fs.statSync(ytDlpPath).mode.toString(8));
-    }
-
-    const ytDlp = spawn(ytDlpPath, ['--get-title', url]);
+    const ytDlp = spawn(ytDlpPath, ['--print', '%(title)s\n%(thumbnail)s', url]);
 
     let chunks = [];
-    ytDlp.stdout.on('data', (data) => {
-      chunks.push(data);
-    });
+    ytDlp.stdout.on('data', (data) => chunks.push(data));
 
     ytDlp.stderr.on('data', (data) => {
       console.error(`yt-dlp stderr: ${data}`);
-      reject(new Error(`yt-dlp error: ${data}`));
     });
 
-    ytDlp.on('error', (err) => {
-      console.error('Spawn error:', err);
-      reject(err);
-    });
+    ytDlp.on('error', (err) => reject(err));
 
     ytDlp.on('close', (code) => {
       if (code === 0) {
-        const title = Buffer.concat(chunks).toString('utf8').trim();
-        resolve(title);
+        const [title, thumbnail] = Buffer.concat(chunks)
+          .toString('utf8')
+          .trim()
+          .split('\n');
+        resolve({ title, thumbnail });
       } else {
         reject(new Error(`yt-dlp exited with code ${code}`));
       }
     });
   });
 }
+
 
 app.get("/", (req, res) => {
   res.send("<h1>Hi I am GODDDDD</h1>");
@@ -63,7 +55,8 @@ app.post('/download', async (req, res) => {
   if (!url) return res.status(400).send('URL обязателен');
 
   try {
-    const title = await getTitleVideo(url);
+    const { title, thumbnail } = await getTitleAndThumbnail(url);
+
     const filename = `video_${Date.now()}.mp4`;
     const ytDlp = spawn(ytDlpPath, [
       '-f', 'bv*+ba/b',
@@ -84,6 +77,7 @@ app.post('/download', async (req, res) => {
         res.json({
           title: title,
           pathUrl: `/videos/${filename}`,
+          thumbnail: thumbnail
         });
       } else {
         res.status(500).send('Ошибка загрузки');
