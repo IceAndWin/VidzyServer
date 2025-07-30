@@ -1,2 +1,11 @@
 [phases.setup]
-nixPkgs = ['python3', 'ffmpeg']
+nixPkgs = ['nodejs', 'python3', 'ffmpeg']
+
+[phases.install]
+cmd = "npm ci"
+
+[phases.build]
+cmd = "npm run build" # Если у вас нет сборки, этот этап можно пропустить
+
+[start]
+cmd = "npm start"
