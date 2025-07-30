@@ -34,7 +34,8 @@ function getTitleVideo(url) {
     });
 
     ytDlp.stderr.on('data', (data) => {
-      console.error(`stderr: ${data}`);
+      console.error(`yt-dlp stderr: ${data}`);
+      reject(new Error(`yt-dlp error: ${data}`));
     });
 
     ytDlp.on('error', (err) => {
@@ -47,7 +48,7 @@ function getTitleVideo(url) {
         const title = Buffer.concat(chunks).toString('utf8').trim();
         resolve(title);
       } else {
-        reject('Не удалось получить название видео');
+        reject(new Error(`yt-dlp exited with code ${code}`));
       }
     });
   });
@@ -71,7 +72,7 @@ app.post('/download', async (req, res) => {
       url,
     ]);
 
-    ytDlp.stderr.on('data', (data) => console.error(data.toString()));
+    ytDlp.stderr.on('data', (data) => console.error(`yt-dlp stderr: ${data}`));
 
     ytDlp.on('error', (err) => {
       console.error('Spawn error:', err);
@@ -89,7 +90,8 @@ app.post('/download', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).send('Ошибка получения названия видео');
+    console.error('Download error:', err);
+    res.status(500).send(`Ошибка: ${err.message}`);
   }
 });
 
