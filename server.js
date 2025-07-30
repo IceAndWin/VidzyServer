@@ -3,90 +3,96 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const iconv = require('iconv-lite');
 const app = express();
-const os = require('os');
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-
-
-
-// Проверка и создание папки
 const downloadsDir = path.join(__dirname, 'downloads');
 if (!fs.existsSync(downloadsDir)) {
-    fs.mkdirSync(downloadsDir, { recursive: true });
+  fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
-// Отдача видео
 app.use('/videos', express.static(downloadsDir));
 
+const ytDlpPath = path.join(__dirname, 'yt-dlp');
 
-
-// Получение названия видео по URL
 function getTitleVideo(url) {
-    return new Promise((resolve, reject) => {
-        const ytDlp = spawn(path.join(__dirname, 'yt-dlp'), ['--get-title', url]);
+  return new Promise((resolve, reject) => {
+    console.log('yt-dlp path:', ytDlpPath);
+    console.log('File exists:', fs.existsSync(ytDlpPath));
+    if (fs.existsSync(ytDlpPath)) {
+      console.log('File permissions:', fs.statSync(ytDlpPath).mode.toString(8));
+    }
 
+    const ytDlp = spawn(ytDlpPath, ['--get-title', url]);
 
-
-        let chunks = [];
-        ytDlp.stdout.on('data', (data) => {
-            chunks.push(data);
-        });
-
-        ytDlp.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-        });
-
-        ytDlp.on('close', (code) => {
-            if (code === 0) {
-                const buffer = Buffer.concat(chunks);
-                const title = os.platform() === 'win32'
-                    ? iconv.decode(buffer, 'win1251').trim()
-                    : buffer.toString('utf8').trim();
-                resolve(title);
-            } else {
-                reject('Не удалось получить название видео');
-            }
-        });
+    let chunks = [];
+    ytDlp.stdout.on('data', (data) => {
+      chunks.push(data);
     });
+
+    ytDlp.stderr.on('data', (data) => {
+      console.error(`stderr: ${data}`);
+    });
+
+    ytDlp.on('error', (err) => {
+      console.error('Spawn error:', err);
+      reject(err);
+    });
+
+    ytDlp.on('close', (code) => {
+      if (code === 0) {
+        const title = Buffer.concat(chunks).toString('utf8').trim();
+        resolve(title);
+      } else {
+        reject('Не удалось получить название видео');
+      }
+    });
+  });
 }
 
 app.get("/", (req, res) => {
-    res.send("<h1>Hi I am GODDDDD</h1>");
-})
+  res.send("<h1>Hi I am GODDDDD</h1>");
+});
 
-// Запрос на скачивание
 app.post('/download', async (req, res) => {
-    const url = req.body.url;
-    if (!url) return res.status(400).send('URL обязателен');
+  const url = req.body.url;
+  if (!url) return res.status(400).send('URL обязателен');
+
+  try {
     const title = await getTitleVideo(url);
     const filename = `video_${Date.now()}.mp4`;
-    const ytDlp = spawn('./yt-dlp', [
-        '-f', 'bv*+ba/b',
-        '--merge-output-format', 'mp4',
-        '-o', `downloads/${filename}`,
-        url,
+    const ytDlp = spawn(ytDlpPath, [
+      '-f', 'bv*+ba/b',
+      '--merge-output-format', 'mp4',
+      '-o', path.join(downloadsDir, filename),
+      url,
     ]);
-
 
     ytDlp.stderr.on('data', (data) => console.error(data.toString()));
 
-    ytDlp.on('close', (code) => {
-        if (code === 0) {
-            res.json({
-                title: title,
-                pathUrl: `/videos/${filename}`,
-            });
-        } else {
-            res.status(500).send('Ошибка загрузки');
-        }
+    ytDlp.on('error', (err) => {
+      console.error('Spawn error:', err);
+      res.status(500).send('Ошибка выполнения yt-dlp');
     });
+
+    ytDlp.on('close', (code) => {
+      if (code === 0) {
+        res.json({
+          title: title,
+          pathUrl: `/videos/${filename}`,
+        });
+      } else {
+        res.status(500).send('Ошибка загрузки');
+      }
+    });
+  } catch (err) {
+    res.status(500).send('Ошибка получения названия видео');
+  }
 });
 
 app.listen(port, '0.0.0.0', () => {
-    console.log(`Сервер запущен на порту ${port}`);
+  console.log(`Сервер запущен на порту ${port}`);
 });
