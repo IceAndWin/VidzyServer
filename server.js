@@ -50,6 +50,17 @@ app.get("/", (req, res) => {
   res.send("<h1>Hi I am GODDDDD</h1>");
 });
 
+
+app.post("/preview", async (req, res) => {
+  const url = req.body.url;
+  if (!url) return res.status(400).send('URL обязателен');
+
+  const { title, thumbnail } = await getTitleAndThumbnail(url);
+  res.json({
+    title: title,
+    thumbnail: thumbnail,
+  });
+})
 app.post('/download', async (req, res) => {
   const url = req.body.url;
   if (!url) return res.status(400).send('URL обязателен');
@@ -75,9 +86,8 @@ app.post('/download', async (req, res) => {
     ytDlp.on('close', (code) => {
       if (code === 0) {
         res.json({
-          title: title,
-          pathUrl: `/videos/${filename}`,
-          thumbnail: thumbnail
+
+          pathUrl: `/videos/${filename}`
         });
       } else {
         res.status(500).send('Ошибка загрузки');
